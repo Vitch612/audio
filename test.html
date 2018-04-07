@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+function inspect(obj,showinherited,searchdepth,depth) {
+  if (showinherited===undefined)
+    showinherited=true;
+  if (depth===undefined)
+    depth=0;
+  if (searchdepth===undefined)
+    searchdepth=2;
+  var log="[--"+depth+"\n",decal=" ";
+  if (depth>searchdepth)
+    return "[MAX DEPTH!]\n";
+  for (var i=0;i<depth;i++) {
+    decal+=" ";
+  }
+  var count=0;
+  for (var p in obj) {
+    var t = typeof obj[p];
+    if (obj.hasOwnProperty(p)) {
+      if (p!="innerHTML" && p!="outerHTML") {
+        log+=decal+"."+p+"("+t+")="+(t == "object" ? "\n"+inspect(obj[p],showinherited,searchdepth,depth+1) : obj[p])+"\n";
+      }
+    } else {
+      if (showinherited) {
+        if (p!="innerHTML" && p!="outerHTML") {
+	  log+=decal+"(h)."+p+"("+t+")="+ (t == "object" ? "\n"+inspect(obj[p],showinherited,searchdepth,depth+1) : obj[p])+"\n";
+        }
+      }
+    }
+    count++;
+  }
+  return log+depth+"--]\n";
+}
+    
+document.addEventListener('DOMContentLoaded', function(){
+    
+var players=[];
+
+players["test"]=[];
+players["test"]["asdf"]=3;
+
+delete players["test"];
+players["test"]["asdf"]=3;
+document.querySelector('.output').innerHTML+=inspect(players).replace(new RegExp('\n','g'),"<BR>");
+    
+//alert(MediaRecorder.isTypeSupported('audio/ogg;codecs=opus'));
+//alert(MediaSource.isTypeSupported('audio/ogg;codecs=opus'));
+//var cst=navigator.mediaDevices.getSupportedConstraints();
+//document.querySelector('.output').innerHTML=inspect(cst).replace(new RegExp('\n','g'),"<BR>");
+//alert(MediaRecorder.isTypeSupported('audio/wav'));
+
+
+
+//var test="sdaf\ndfgas\ndg";
+//document.querySelector('.output').innerHTML+=test.replace(new RegExp('\n','g'),"<BR>");
+});
+</script>            
+</head>
+<body>
+<div class="output"></div>
+</body>
+</html>
