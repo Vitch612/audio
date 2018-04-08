@@ -43,12 +43,10 @@ if (isset($_REQUEST["start"])) {
   session_unset();
   session_write_close();
   savesession($sessionid,["name"=>$_REQUEST["start"]]);
-  if (file_exists("$applicationfolder/files/$sessionid.webm"))
-    unlink("$applicationfolder/files/$sessionid.webm");
-  if (file_exists("$applicationfolder/files/$sessionid.ogg"))
-    unlink("$applicationfolder/files/$sessionid.ogg");
   $reply="";
   $sessions=getsessions($sessionid);
+  array_map('unlink', glob("$applicationfolder/files/".$sessionid."seq_*.webm"));
+  array_map('unlink', glob("$applicationfolder/files/".$sessionid."seq_*.ogg"));
   if ($sessions!=NULL)
     foreach($sessions as $row) {
       if ($row["Name"]!="")
@@ -82,8 +80,5 @@ if (isset($_REQUEST["close"])) {
     }          
   }
   savesession($sessionid,["name"=>""]);
-  if (file_exists("$applicationfolder/files/$sessionid.$extension")) {
-    unlink("$applicationfolder/files/$sessionid.$extension");
-  }
   array_map('unlink', glob("$applicationfolder/files/".$sessionid."seq_*.$extension"));
 }

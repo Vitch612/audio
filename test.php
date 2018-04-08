@@ -1,6 +1,10 @@
 <?php
 include 'include.php';
 
+$v=[];
+$v["Sdf"]["sdf"]="asdf";
+print_r($v);
+
 //askforreset("$sessionid","atnoher");
 
 

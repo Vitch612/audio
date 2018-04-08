@@ -2,7 +2,7 @@ var name="";
 var recorder;
 var players={};
 var stopped=true;
-var recordedchunks;
+//var recordedchunks;
 var sequenceid=0;
 var barred=[];
 function inspect(obj,showinherited,searchdepth,depth) {
@@ -50,10 +50,11 @@ function getfromsid(sid) {
 function display(text,received) {
   if (received===undefined)
     received=0;
-  if (received===0) {
+  if (received===0 || received===2 || received===3) {
     document.querySelector('.message').innerHTML+=text.replace(new RegExp('\n','g'),"<BR>")+"<BR>";
   } else if (received===1) {
-    document.querySelector('.received').innerHTML=(Number(text)+Number(document.querySelector('.received').innerHTML));
+    //document.querySelector('.received').innerHTML=(Number(text)+Number(document.querySelector('.received').innerHTML));
+    document.querySelector('.received').innerHTML=Number(text);
   } else if (received===2) {
     document.querySelector('.events').innerHTML+=text.replace(new RegExp('\n','g'),"<BR>")+"<BR>";
   } else if (received===3) {
@@ -87,34 +88,35 @@ function stopall(closing) {
 function registersourcebuffer(buffer,rid) {
   var firstpass=true;
   buffer.onabort=function() {
-    display("<font color='green'>abort</font>",2);
+    display("<font color='green'>abort "+rid+"</font>",2);
   };
   buffer.onerror=function(e) {
-    display("<font color='green'>error</font>",2);    
+    display("<font color='green'>error "+rid+"</font>",2);    
     if (players[rid]!==undefined) {
-      sendremotereset(players[rid]["sid"]);
+      //sendremotereset(players[rid]["sid"]);
+      var audioposition="NA";
       if(players[rid]["audio"]!==undefined) {
-        if (players[rid]["audio"].error!==undefined && players[rid]["audio"].error!==null)
-          display(""+players[rid]["audio"].error.code+" "+players[rid]["audio"].error.message);
-        }
-        var available="";
-        for (var p in players[rid]["pending"]) {
-          available+=" "+p[0];
-        }
-        if (this.buffered!==undefined) {
-          if (this.buffered.length>0) {
-            display("BE cur pos: "+players[rid]["current"][0]+" pend:("+players[rid]["pending"].length+")"+available+" buff["+buffer.buffered.start(0)+"-"+buffer.buffered.end(0)+"] player:"+players[rid]["audio"].currentTime,3);
-            return;
-          } 
-        }
-        display("BE cur pos: "+players[rid]["current"][0]+" pend:("+players[rid]["pending"].length+")"+available+" player:"+players[rid]["audio"].currentTime,3);
+        audioposition=players[rid]["audio"].currentTime;
+      }
+      var available="";
+      for (var p in players[rid]["pending"]) {
+        available+=" "+p[0];
+      }
+      if (this.buffered!==undefined) {
+        if (this.buffered.length>0) {
+          display("BE cur pos: "+players[rid]["current"][0]+" pend:("+players[rid]["pending"].length+")"+available+" buff["+buffer.buffered.start(0)+"-"+buffer.buffered.end(0)+"] player:"+audioposition,3);
+          return;
+        } 
+      }
+      display("BE cur pos: "+players[rid]["current"][0]+" pend:("+players[rid]["pending"].length+")"+available+" player:"+audioposition,3);
     }
   };
   buffer.onupdate=function() {
-    //display("<font color='green'>update</font>",2);
+    //display("<font color='green'>update "+rid+"</font>",2);
   };
   buffer.onupdateend=function() {
-    //display("<font color='green'>updateend</font>",2);
+    //display("<font color='green'>updateend "+rid+"</font>",2);
+    display(this.buffered.end(0),1);
     if (firstpass) {
       if (players[rid]!==undefined) {
         if (this.buffered!==undefined) {
@@ -133,26 +135,25 @@ function registersourcebuffer(buffer,rid) {
     }      
   };
   buffer.onupdatestart=function() {
-    //display("<font color='green'>updatestart</font>",2);
+    //display("<font color='green'>updatestart "+rid+"</font>",2);
   };
 }
 function createplayer(rid) {
     if (players[rid]===undefined)
       return;
     var sid=players[rid]["sid"];
-    display("create player");
+    players[rid]["status"]=0;
+    display("create player "+rid);
     var ms=new MediaSource();
     players[rid]["track"]=ms;
     ms.addEventListener('sourceopen', function() {
-      display("<font color='red'>sourceopen</font>",2);
+      //display("<font color='red'>sourceopen "+rid+"</font>",2);
     });
     ms.addEventListener('sourceended', function() {
-      display("<font color='red'>sourceended</font>",2);
-      //removeplayer(rid);
+      //display("<font color='red'>sourceended "+rid+"</font>",2);
     });
     ms.addEventListener('sourceclose', function() {
-      display("<font color='red'>sourceclose</font>",2);
-      //removeplayer(rid);
+      //display("<font color='red'>sourceclose "+rid+"</font>",2);
     });
     var div = document.createElement('div');
     div.setAttribute("class","player");
@@ -176,36 +177,50 @@ function createplayer(rid) {
     div.appendChild(name);
     audio.autoplay = true;
     audio.onloadedmetadata = function() {
-      display("<font color='blue'>loadedmetadata</font>",2);
+      //display("<font color='blue'>loadedmetadata "+rid+"</font>",2);
     };
     audio.onloadeddata = function() {
-      //display("<font color='blue'>loadeddata</font>",2);
+      //display("<font color='blue'>loadeddata "+rid+"</font>",2);      
     };    
     audio.onprogress = function() {
-      //display("progress");
+      //display("<font color='blue'>progress "+rid+"</font>",2);
+    };    
+    audio.onplaying = function() {
+      //display("<font color='blue'>playing "+rid+"</font>",2);
+      players[rid]["status"]=1;
+    };    
+    audio.onerror = function() {
+      //display("<font color='blue'>error "+rid+"</font>",2);
+      //display("player at: "+this.currentTime+" EC:"+this.error.code+" EM:"+this.error.message);
+    };    
+    audio.onpause = function() {
+      //display("<font color='blue'>pause "+rid+"</font>",2);
     };    
     audio.oncanplay = function() {
-      display("<font color='blue'>canplay</font>",2);
-      try {
-        audio.play();    
-      } catch(e) {}      
+      //display("<font color='blue'>canplay "+rid+"</font>",2);
+      audio.play();  
+      if (players[rid]["status"]===2) {
+        display("<font color='blue'>playing "+rid+"</font>",2);
+      }
+      
     };
     audio.onabort = function() {
-      //display("<font color='blue'>abort</font>",2);
+      //display("<font color='blue'>abort "+rid+"</font>",2);
       //removeplayer(rid);
     };
     audio.onended = function() {
-      //display("<font color='blue'>ended</font>",2);
+      //display("<font color='blue'>ended "+rid+"</font>",2);
     };
     audio.onstalled = function() {
-      display("<font color='blue'>stalled</font>",2);
-      removeplayer(rid);
+      display("<font color='blue'>stalled "+rid+"</font>",2);
+      players[rid]["status"]=2;
+      //removeplayer(rid);
     };
     audio.onsuspend = function() {
-      display("<font color='blue'>suspend</font>",2);
+      //display("<font color='blue'>suspend "+rid+"</font>",2);
     };       
     audio.onwaiting = function() {
-      display("<font color='blue'>waiting</font>",2);
+      //display("<font color='blue'>waiting "+rid+"</font>",2);
       //removeplayer(rid);
     };
     players[rid]["audio"]=audio;
@@ -279,12 +294,13 @@ function addtoplayer(buffer,rid) {
                 } else if (players[rid]["pending"][i][0]===position+length) {
                   players[rid]["current"]=players[rid]["pending"][i];
                   players[rid]["pending"].splice(i,1);
-                  buffer.appendBuffer(new Uint8Array(players[rid]["current"][2]));
+                  buffer.appendBuffer(new Uint8Array(players[rid]["current"][2]));                  
+                  //display("added slice:"+(position+length)+" next slice:"+(players[rid]["current"][0]+players[rid]["current"][1])+" pending:("+players[rid]["pending"].length+") buffer["+buffer.buffered.start(0)+"-"+buffer.buffered.end(0)+"]",3);
                   return;
                 }
               }           
               gettrackdata(rid,0,position+length);
-              /*
+              
               if (buffer.buffered!==undefined)
                 if (buffer.buffered.length>0) {
                   var available="";
@@ -297,15 +313,18 @@ function addtoplayer(buffer,rid) {
                   } catch(e) {
                     display(e.message);
                   }
-                  display("missing slice "+(position+length)+" pending:("+players[rid]["pending"].length+")"+available+" buffer["+buffer.buffered.start(0)+"-"+buffer.buffered.end(0)+"] "+playtime,3);                  
+                  //display("missing slice "+(position+length)+" pending:("+players[rid]["pending"].length+")"+available+" buffer["+buffer.buffered.start(0)+"-"+buffer.buffered.end(0)+"] "+playtime,3);
                 } 
-              */
+              
             } else {
               for(var i=0;i<players[rid]["pending"].length;i++) {
                 if (players[rid]["pending"][i][0]===0) {
                   players[rid]["current"]=players[rid]["pending"][i];
                   players[rid]["pending"].splice(i,1);
                   buffer.appendBuffer(new Uint8Array(players[rid]["current"][2]));
+                  position=players[rid]["current"][0];
+                  length=players[rid]["current"][1];
+                  //display("added slice:"+position+" next slice:"+(position+length)+" pending:("+players[rid]["pending"].length+")",3);
                   return;
                 }
               }            
@@ -346,7 +365,7 @@ function gettrackdata(rid,retry,seekposition,length) {
       return;
     }
     if (xhr.status===200 && size>0) {
-      display(size,1);
+      //display(size,1);
       if (players[rid]!==undefined) {
         if (players[rid]["contenttype"]===undefined) {
           players[rid]["contenttype"]=xhr.getResponseHeader("Content-Type");
@@ -360,6 +379,7 @@ function gettrackdata(rid,retry,seekposition,length) {
             try {
               if (ms.readyState==="open") {
                 if (players[rid]["contenttype"]!==undefined) {
+                  //display("add buffer for "+rid+": "+players[rid]["contenttype"]);
                   ms.addSourceBuffer(players[rid]["contenttype"]);
                   registersourcebuffer(ms.sourceBuffers[0],rid);               
                 }                
@@ -372,9 +392,11 @@ function gettrackdata(rid,retry,seekposition,length) {
           }
         }
         players[rid]["pending"].push([position,size,xhr.response]);
-        addtoplayer(ms.sourceBuffers[0],rid);            
+        //display("received for "+rid+" "+size+" bytes at "+position,3);
+        setTimeout(addtoplayer,5,ms.sourceBuffers[0],rid);
+        //addtoplayer(ms.sourceBuffers[0],rid);        
       }
-      //display("received for "+rid+" "+size+" bytes at "+position,3);      
+      
     } else {
       if (xhr.status!==204) {
         display("failed request "+xhr.status);
@@ -474,12 +496,13 @@ function sendremotereset(sid) {
   xhr.send(formdata);
 }
 function startrecording() {
-  navigator.mediaDevices.enumerateDevices().then(function(devices) {  
+  navigator.mediaDevices.enumerateDevices().then(function(devices) {
     devices = devices.filter(function(d) {return d.kind === 'audioinput';});
-    navigator.mediaDevices.getUserMedia({audio:{deviceId:devices[0].deviceId,echoCancellation: false,volume:1},video:false}).then(function(stream) {
+    navigator.mediaDevices.getUserMedia({audio:{deviceId:devices[0].deviceId,echoCancellation: true,volume:1},video:false}).then(function(stream) {
       var types = ['audio/webm;codecs="opus"','audio/ogg;codecs="opus"'];//["audio/webm;codecs=\"opus\"",'audio/ogg;codecs="opus"'];
       for (var i in types)
         if (MediaRecorder.isTypeSupported(types[i])) {
+          //display("recording "+types[i]);
           recorder = new MediaRecorder(stream,{mimeType : types[i]});
           break;
         }
@@ -498,7 +521,7 @@ function startrecording() {
         recorder.ondataavailable = function(e) {
             //display(""+(new Date().getTime()));
           if (e.data.size!==0) {
-            recordedchunks.push(e.data);
+              //recordedchunks.push(e.data);
               setTimeout(sendchunk,5,e.data,sequenceid);
               //sendchunk(e.data,sequenceid);
               sequenceid++;       
@@ -516,7 +539,7 @@ function startall() {
   if (stopped===false)
     return;
   stopped=false;
-  recordedchunks=[];
+  //recordedchunks=[];
   var xhr = new XMLHttpRequest();
   xhr.open('POST', '/audio/receiveupdates.php');
   var formdata = new FormData();

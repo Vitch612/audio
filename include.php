@@ -1,6 +1,5 @@
 <?php
 include 'database.php';
-
 function getfile($filepath) {
   $s=NULL;
   if (file_exists($filepath)) {
@@ -141,10 +140,10 @@ function savePersistent($name, $value) {
   logmsg("failed to save $name " . debug_backtrace()[0]["file"] . "(" . debug_backtrace()[0]["line"] . ") s=".$s." a=" . print_r($a, true) . "\nvalue=" . print_r($value, true));
   return false;  
 }
-function logmsg($text) {
+function logmsg($text,$logfile="logfile.txt") {
   global $applicationfolder;
   //file_put_contents("$applicationfolder/files/logfile.txt",date("Y-m-d h:i:sa").": ".$text."\n",FILE_APPEND);
-  putfile("$applicationfolder/logfile.txt",date("Y-m-d h:i:sa").": ".$text."\n","a");
+  putfile("$applicationfolder/$logfile",date("Y-m-d h:i:sa").": ".$text."\n","a");
 }
 function startWith($haystack,$needle,$case=false) {
   if ($case)
@@ -245,7 +244,7 @@ function script_end() {
   if (isset(error_get_last()["message"])) {
     if (startWith(error_get_last()["message"],"Maximum execution time")) {
       logmsg("Server Abort ".(microtime(true)-$starttime).":\n".print_r(["URL"=>$_SERVER["REQUEST_URI"],"HEADERS"=>["REQUEST"=>getallheaders(),"RESPONSE"=>headers_list()],"ENDSCRIPT"=>connection_aborted()?"Connection Aborted":"Normal End","LASTERROR"=>error_get_last()],true));
-      deletefile("$applicationfolder/lockdata");
+      //deletefile("$applicationfolder/lockdata");
     }  
   }
 }

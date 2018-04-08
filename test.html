@@ -36,29 +36,22 @@ function inspect(obj,showinherited,searchdepth,depth) {
     
 document.addEventListener('DOMContentLoaded', function(){
     
-var players=[];
-
-players["test"]=[];
-players["test"]["asdf"]=3;
-
-delete players["test"];
-players["test"]["asdf"]=3;
-document.querySelector('.output').innerHTML+=inspect(players).replace(new RegExp('\n','g'),"<BR>");
-    
 //alert(MediaRecorder.isTypeSupported('audio/ogg;codecs=opus'));
 //alert(MediaSource.isTypeSupported('audio/ogg;codecs=opus'));
 //var cst=navigator.mediaDevices.getSupportedConstraints();
 //document.querySelector('.output').innerHTML=inspect(cst).replace(new RegExp('\n','g'),"<BR>");
 //alert(MediaRecorder.isTypeSupported('audio/wav'));
-
-
-
-//var test="sdaf\ndfgas\ndg";
-//document.querySelector('.output').innerHTML+=test.replace(new RegExp('\n','g'),"<BR>");
 });
 </script>            
 </head>
 <body>
 <div class="output"></div>
+<form action="sendaudio.php">
+    Position:<input type="text" value="0" name="Stream-Position"><br>
+    Bytes:<input type="text" value="0" name="Get-Bytes"><br>
+    SessionID:<input type="text" value="u8mmbkcqml18k869757s1lo397" name="ID"><br>    
+    PlayerID:<input type="text" value="1234" name="playerid"><br>
+    <input type="submit" value="Send">
+</form>
 </body>
 </html>
