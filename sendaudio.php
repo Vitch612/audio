@@ -51,6 +51,7 @@ if (isset($_REQUEST["ID"])) {
   }
   $loadedsize=0;
   $content="";
+  timelog("start assembling data");
   for ($i = $startsequence; true; $i++) {
     if (file_exists("$applicationfolder/files/$sessionid" . "seq_" . $i . ".$extension")) {
       $fs=filesize("$applicationfolder/files/$sessionid" . "seq_" . $i . ".$extension");
@@ -83,6 +84,7 @@ if (isset($_REQUEST["ID"])) {
         break;
     } else break;
   }
+  timelog("done assembling data");
   //$chunks=$_SESSION[$sessionid]["chunks"];
   session_write_close();
   if ($skippedsize+strlen($content)>$seek) {
@@ -106,12 +108,15 @@ if (isset($_REQUEST["ID"])) {
     //header(sprintf('Content-Disposition: attachment; filename="%s"', "chunk.webm"));
     echo $data;
     flush();
+    timelog("data sent");
     die();
   }
   //logmsg("$playerid fid:$startsequence sent:0 from:".$seek." to:$seek skipped:$skippedsize loaded: $loadedsize total:".($loadedsize+$skippedsize),"out_$sessionid.txt");
+  timelog("nothing to send");
   header("HTTP/1.1 204 No Content");
   header("Stream-Position: ".$seek);
 } else {
+  timelog("invalid request");
   logmsg("invalid request","out_$sessionid.txt");
   header("HTTP/1.1 400 Invalid Request");
   die("<h3>Requests without an ID are invalid</h3>");

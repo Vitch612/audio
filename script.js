@@ -53,8 +53,7 @@ function display(text,received) {
   if (received===0 || received===2 || received===3) {
     document.querySelector('.message').innerHTML+=text.replace(new RegExp('\n','g'),"<BR>")+"<BR>";
   } else if (received===1) {
-    //document.querySelector('.received').innerHTML=(Number(text)+Number(document.querySelector('.received').innerHTML));
-    document.querySelector('.received').innerHTML=Number(text);
+    document.querySelector('.received').innerHTML=(Number(text)+Number(document.querySelector('.received').innerHTML));    
   } else if (received===2) {
     document.querySelector('.events').innerHTML+=text.replace(new RegExp('\n','g'),"<BR>")+"<BR>";
   } else if (received===3) {
@@ -84,6 +83,15 @@ function stopall(closing) {
   for(var rid in players) {
     removeplayer(rid);
   }
+}
+function precisionRound(number, precision) {
+  var factor = Math.pow(10, precision);
+  var retval=""+Math.round(number * factor) / factor;
+  if (retval.substr(retval.indexOf(".")+1).length<precision) {
+    for(var i=0;i<=precision-retval.substr(retval.indexOf(".")+1).length;i++)
+      retval+="0";
+  }
+  return retval;
 }
 function registersourcebuffer(buffer,rid) {
   var firstpass=true;
@@ -116,13 +124,43 @@ function registersourcebuffer(buffer,rid) {
   };
   buffer.onupdateend=function() {
     //display("<font color='green'>updateend "+rid+"</font>",2);
-    display(this.buffered.end(0),1);
+    try {      
+      /*
+      if (this.buffered.end(0)-players[rid]["audio"].currentTime<0.3) {
+        if (players[rid]["audio"].playbackRate>0.9) {
+          players[rid]["audio"].playbackRate-=0.005;
+          display("playspeed: "+players[rid]["audio"].playbackRate);            
+        }
+      }*/
+      
+      /*
+      if (players[rid]["min"]===undefined) {
+        players[rid]["min"]=this.buffered.end(0)-players[rid]["audio"].currentTime;
+        players[rid]["max"]=this.buffered.end(0)-players[rid]["audio"].currentTime;
+        players[rid]["count"]=0;
+      } else {
+        players[rid]["count"]+=1;
+        if (players[rid]["count"]>20) {
+          players[rid]["count"]=0;
+          players[rid]["min"]=this.buffered.end(0)-players[rid]["audio"].currentTime;
+          players[rid]["max"]=this.buffered.end(0)-players[rid]["audio"].currentTime;            
+        }
+        if (players[rid]["min"]>this.buffered.end(0)-players[rid]["audio"].currentTime)
+          players[rid]["min"]=this.buffered.end(0)-players[rid]["audio"].currentTime;    
+        if (players[rid]["max"]<this.buffered.end(0)-players[rid]["audio"].currentTime)
+          players[rid]["max"]=this.buffered.end(0)-players[rid]["audio"].currentTime;    
+      }*/
+      
+      document.querySelector('.timediff_'+rid).innerHTML=precisionRound(this.buffered.end(0)-players[rid]["audio"].currentTime,2); //+" "+precisionRound(players[rid]["min"],2)+" "+precisionRound(players[rid]["max"],2)
+      document.querySelector('.ptime_'+rid).innerHTML=precisionRound(players[rid]["audio"].currentTime,2);
+      document.querySelector('.btime_'+rid).innerHTML=precisionRound(this.buffered.end(0),2);      
+    } catch(e) {}
     if (firstpass) {
       if (players[rid]!==undefined) {
         if (this.buffered!==undefined) {
           if (this.buffered.length>0) {
-            if (this.buffered.end(0)-0.05>0) {
-              players[rid]["audio"].currentTime=this.buffered.end(0)-0.05;
+            if (this.buffered.end(0)-0.1>0) {
+              players[rid]["audio"].currentTime=this.buffered.end(0)-0.1;
             }                
             firstpass=false;
           }          
@@ -136,6 +174,16 @@ function registersourcebuffer(buffer,rid) {
   };
   buffer.onupdatestart=function() {
     //display("<font color='green'>updatestart "+rid+"</font>",2);
+    //if (players[rid]["track"].sourceBuffers[0].buffered.end(0)-players[rid]["audio"].currentTime>0.7) {
+    //  players[rid]["audio"].currentTime=players[rid]["track"].sourceBuffers[0].buffered.end(0)-0.3;
+    //}          
+    
+//    if (this.buffered.end(0)-players[rid]["audio"].currentTime>1) {      
+//      if (players[rid]["audio"].playbackRate<1.1) {
+//        players[rid]["audio"].playbackRate+=0.005;
+//        display("playspeed: "+players[rid]["audio"].playbackRate);          
+//      }
+//    } 
   };
 }
 function createplayer(rid) {
@@ -160,22 +208,24 @@ function createplayer(rid) {
     div.setAttribute("id",sid);
     var audio = document.createElement('audio');
     audio.controls = false;
+    audio.autoplay = true;
     audio.type = 'audio/webm;codecs="opus"';
     var name=document.createElement("A");
     name.href="#";
-    name.setAttribute("class","namelink playername_"+sid);
+    name.setAttribute("class","namelink playername_"+rid);
+    players[rid]["style"]="";
     name.onclick = function(e) {
       e.preventDefault();
       players[rid]["audio"].muted=!players[rid]["audio"].muted;
       if (players[rid]["audio"].muted) {
-        this.setAttribute("style","color:grey;");    
+        players[rid]["style"]=this.getAttribute("style");
+        this.setAttribute("style","color:grey;");
       } else {
-        this.setAttribute("style","");
+        this.setAttribute("style",players[rid]["style"]);
       }
     };
     name.appendChild(document.createTextNode(players[rid]["name"]));
-    div.appendChild(name);
-    audio.autoplay = true;
+    div.appendChild(name);    
     audio.onloadedmetadata = function() {
       //display("<font color='blue'>loadedmetadata "+rid+"</font>",2);
     };
@@ -186,45 +236,94 @@ function createplayer(rid) {
       //display("<font color='blue'>progress "+rid+"</font>",2);
     };    
     audio.onplaying = function() {
-      //display("<font color='blue'>playing "+rid+"</font>",2);
+      display("<font color='blue'>playing "+rid+"</font>",2);
+      try {
+        players[rid]["style"]=document.querySelector(".playername_"+rid).getAttribute("style");
+        var style=document.querySelector(".playername_"+rid).getAttribute("style");
+        if (style==="color:grey;") {
+          players[rid]["style"]="color:green;";
+        } else {
+          document.querySelector(".playername_"+rid).setAttribute("style","color:green;");
+        }          
+      } catch(e) {          
+      }
+      /*if (players[rid]["status"]>1) {
+        if (players[rid]["track"].sourceBuffers[0].buffered.end(0)-players[rid]["audio"].currentTime>0.5) {
+          players[rid]["audio"].currentTime=players[rid]["track"].sourceBuffers[0].buffered.end(0)-0.2;
+        }          
+      }*/
       players[rid]["status"]=1;
     };    
     audio.onerror = function() {
-      //display("<font color='blue'>error "+rid+"</font>",2);
-      //display("player at: "+this.currentTime+" EC:"+this.error.code+" EM:"+this.error.message);
+      display("<font color='blue'>error "+rid+"</font>",2);
+      try {
+        var style=document.querySelector(".playername_"+rid).getAttribute("style");
+        if (style==="color:grey;") {
+          players[rid]["style"]="";
+        } else {
+          document.querySelector(".playername_"+rid).setAttribute("style","");
+        }          
+      }catch(e) {          
+      }
+      display("player at: "+this.currentTime+" EC:"+this.error.code+" EM:"+this.error.message);
     };    
     audio.onpause = function() {
-      //display("<font color='blue'>pause "+rid+"</font>",2);
+      display("<font color='blue'>pause "+rid+"</font>",2);
     };    
     audio.oncanplay = function() {
-      //display("<font color='blue'>canplay "+rid+"</font>",2);
-      audio.play();  
-      if (players[rid]["status"]===2) {
-        display("<font color='blue'>playing "+rid+"</font>",2);
-      }
-      
+      display("<font color='blue'>canplay "+rid+"</font>",2);
+      audio.play();      
     };
     audio.onabort = function() {
-      //display("<font color='blue'>abort "+rid+"</font>",2);
+      display("<font color='blue'>abort "+rid+"</font>",2);
+      try {
+        var style=document.querySelector(".playername_"+rid).getAttribute("style");
+        if (style==="color:grey;") {
+          players[rid]["style"]="";
+        } else {
+          document.querySelector(".playername_"+rid).setAttribute("style","");
+        }          
+      }catch(e) {          
+      }
+      
       //removeplayer(rid);
     };
     audio.onended = function() {
-      //display("<font color='blue'>ended "+rid+"</font>",2);
+      display("<font color='blue'>ended "+rid+"</font>",2);
     };
     audio.onstalled = function() {
       display("<font color='blue'>stalled "+rid+"</font>",2);
-      players[rid]["status"]=2;
+      try {
+        var style=document.querySelector(".playername_"+rid).getAttribute("style");
+        if (style==="color:grey;") {
+          players[rid]["style"]="";
+        } else {
+          document.querySelector(".playername_"+rid).setAttribute("style","");
+        }          
+      }catch(e) {          
+      }
+      players[rid]["status"]=3;
       //removeplayer(rid);
     };
     audio.onsuspend = function() {
-      //display("<font color='blue'>suspend "+rid+"</font>",2);
+      display("<font color='blue'>suspend "+rid+"</font>",2);
     };       
     audio.onwaiting = function() {
-      //display("<font color='blue'>waiting "+rid+"</font>",2);
+      display("<font color='blue'>waiting "+rid+"</font>",2);
+      players[rid]["status"]=2;
       //removeplayer(rid);
     };
     players[rid]["audio"]=audio;
     div.appendChild(audio);
+    var div1 = document.createElement('div');
+    div1.setAttribute("class","timedisp timediff_"+rid);
+    var div2 = document.createElement('div');
+    div2.setAttribute("class","timedisp ptime_"+rid);
+    var div3 = document.createElement('div');
+    div3.setAttribute("class","timedisp btime_"+rid);
+    div.appendChild(div1);
+    div.appendChild(div2);
+    div.appendChild(div3);
     document.querySelector('.players').appendChild(div);
     audio.src = window.URL.createObjectURL(ms);
 }
@@ -365,14 +464,13 @@ function gettrackdata(rid,retry,seekposition,length) {
       return;
     }
     if (xhr.status===200 && size>0) {
-      //display(size,1);
       if (players[rid]!==undefined) {
         if (players[rid]["contenttype"]===undefined) {
           players[rid]["contenttype"]=xhr.getResponseHeader("Content-Type");
         }
         if (players[rid]["pending"]===undefined) {
           players[rid]["pending"]=[];
-        }
+        }        
         var ms=players[rid]["track"];
         if (ms!==undefined) {
           if (Object.keys(ms.sourceBuffers).length===0) {
@@ -412,7 +510,7 @@ function getaudiotracks() {
   for (var rid in players) {
     gettrackdata(rid);
   }
-  setTimeout(getaudiotracks,100);    
+  setTimeout(getaudiotracks,50);    
 }
 function updateplayerslist() {
   if (stopped)
@@ -423,6 +521,8 @@ function updateplayerslist() {
   formdata.append("update",name);
   xhr.send(formdata);
   xhr.onload = function() {
+    if (stopped)
+      return;
     if (xhr.status === 200) {
       var ids=[];
       if (xhr.response.length>0) {
@@ -431,7 +531,7 @@ function updateplayerslist() {
         } else if (parts[0]==="1") {
           display("received reset");
           stopall(true);
-          setTimeout(startall,100);
+          setTimeout(startall,50);
           return;
         } else {
           removeplayer(getfromsid(parts[0]));
@@ -484,7 +584,9 @@ function sendchunk(e,seqid,retry) {
     if (xhr.status !== 204) {
       display("resending "+e.size+" "+seqid);
       sendchunk(e,seqid,++retry);
-    } 
+    } else {
+      display(e.size,1);
+    }
   };
   xhr.send(e);
 }
@@ -527,7 +629,7 @@ function startrecording() {
               sequenceid++;       
             }
         };
-        recorder.start(100);
+        recorder.start(50);
       } else {
         display("No supported mime type");
       }
@@ -569,6 +671,7 @@ function startall() {
     updateplayerslist();
   };
 }
+
 document.addEventListener('DOMContentLoaded', function(){
   document.querySelector('input[name="start"]').addEventListener("click", function(){
     if (document.querySelector('input[name="name"]').value.length>0) {

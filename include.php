@@ -209,10 +209,10 @@ function deleteresetrequests($sessionid) {
   if (count($sid)>0)
     $mysql->delete("requestreset","`Targetsession`='".$sid["ID"]."'");
 }
-function askforplayerreset($session1,$session2) {
+function askforplayerreset($source,$target) {
   global $mysql;
-  $sid1=getsession($session1);
-  $sid2=getsession($session2);
+  $sid1=getsession($source);
+  $sid2=getsession($target);
   if ($sid1!=NULL && $sid2!=NULL)
     $mysql->insert("resetplayer",["Resetsource"=>$sid1["ID"],"Resettarget"=>$sid2["ID"]]);
 }
@@ -232,14 +232,32 @@ function deleteplayerresetrequest($source,$target) {
   $sid1=getsession($source);
   $sid2=getsession($target);
   if ($sid1!=NULL && $sid2!=NULL)
-    $mysql->delete("requestreset","`Resetsource`='".$sid1["ID"]."' AND `Resettarget`='".$sid2["ID"]."'");
+    $mysql->delete("resetplayer","`Resetsource`='".$sid1["ID"]."' AND `Resettarget`='".$sid2["ID"]."'");
+}
+
+function timelog($text) {
+  global $timelog;
+  global $starttime;
+  $timelog[]=["".(microtime(true)-$starttime)=>$text];
 }
 
 function script_end() {
   global $applicationfolder;
   global $starttime;
+  global $timelog;
+  timelog("End of script");
   if (microtime(true)-$starttime>1) {
-    logmsg("Served in ".(microtime(true)-$starttime).":\n".print_r(["URL"=>$_SERVER["REQUEST_URI"],"HEADERS"=>["REQUEST"=>getallheaders(),"RESPONSE"=>headers_list()],"ENDSCRIPT"=>connection_aborted()?"Connection Aborted":"Normal End","LASTERROR"=>error_get_last()],true));
+    $points="[";
+    foreach($timelog as $entry) {
+      foreach($entry as $time=>$text) {
+        $points.=$time."=>".$text.",";
+      }
+    }
+    if ($points!=="[")
+     $points=substr($points,0,strlen($points)-1)."]";
+    else
+     $points="[]";
+    logmsg("URL:".$_SERVER["REQUEST_URI"]." $points");
   }
   if (isset(error_get_last()["message"])) {
     if (startWith(error_get_last()["message"],"Maximum execution time")) {
@@ -250,6 +268,7 @@ function script_end() {
 }
 error_reporting(E_ALL ^ E_WARNING);
 $starttime= microtime(true);
+$timelog=[];
 $mysql=new database();
 $applicationfolder=substr($_SERVER["SCRIPT_FILENAME"],0,strrpos($_SERVER["SCRIPT_FILENAME"],"/"));
 register_shutdown_function("script_end");

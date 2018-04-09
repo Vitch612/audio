@@ -1,6 +1,7 @@
 <?php
 include 'include.php';
 if (isset($_REQUEST["update"])) {
+  timelog("update request start");
   session_start();
   $sessionid=session_id();
   session_write_close();
@@ -13,31 +14,36 @@ if (isset($_REQUEST["update"])) {
     deleteresetrequests($sessionid);
   }
   if ($reply == "0/") {
-    $preset=getplayerresetrequests($sessionid);
+    $preset=getplayerresetrequests($sessionid);      
     if ($preset!=NULL)
       foreach($preset as $row) {
-        $reply == $row["Sessionid"]."/";
+        $reply = $row["Sessionid"]."/";
         deleteplayerresetrequest($row["Sessionid"],$sessionid);
         break;
       }
   }
   if (($sessions=getsessions($sessionid))!=NULL)  
     foreach($sessions as $row) {
-      if ($reply == "1/")
-        askforplayerreset($sessionid,$row["Sessionid"]);
-      if ($row["Name"]!="")
+      if ($row["Name"]!="") {
+        if ($reply == "1/")
+          askforplayerreset($sessionid,$row["Sessionid"]);
         $reply.=$row["Sessionid"].",".$row["Name"]."|";    
+      }        
     }
   echo substr($reply,0,strlen($reply)-1);
+  timelog("update request done");
 }
 if (isset($_REQUEST["sendreset"])) {  
+  timelog("reset request start");
   session_start();
   $sessionid=session_id();
   session_write_close();
   askforreset($sessionid,$_REQUEST["sendreset"]);
   header("HTTP/1.1 204 No Content");    
+  timelog("reset request done");
 }
 if (isset($_REQUEST["start"])) {
+  timelog("start request start");
   session_start();
   $sessionid=session_id();
   session_unset();
@@ -54,16 +60,20 @@ if (isset($_REQUEST["start"])) {
     }
   if (strlen($reply)>0)
     echo substr($reply,0,strlen($reply)-1);
+  timelog("start request done");
 }
 if (isset($_REQUEST["stop"])) {  
+  timelog("stop request start");
   session_start();
   $sessionid=session_id();
   session_unset();
   $_SESSION["stoprecording"]=true;
   session_write_close();
   savesession($sessionid,["name"=>""]);
+  timelog("stop request done");
 }
 if (isset($_REQUEST["close"])) {
+  timelog("close request start");
   session_start();
   if (isset($_SESSION["sequence"]))
     $sequence=$_SESSION["sequence"];
@@ -81,4 +91,5 @@ if (isset($_REQUEST["close"])) {
   }
   savesession($sessionid,["name"=>""]);
   array_map('unlink', glob("$applicationfolder/files/".$sessionid."seq_*.$extension"));
+  timelog("close request done");
 }
