@@ -124,15 +124,7 @@ function registersourcebuffer(buffer,rid) {
   };
   buffer.onupdateend=function() {
     //display("<font color='green'>updateend "+rid+"</font>",2);
-    try {      
-      /*
-      if (this.buffered.end(0)-players[rid]["audio"].currentTime<0.3) {
-        if (players[rid]["audio"].playbackRate>0.9) {
-          players[rid]["audio"].playbackRate-=0.005;
-          display("playspeed: "+players[rid]["audio"].playbackRate);            
-        }
-      }*/
-      
+    try {            
       /*
       if (players[rid]["min"]===undefined) {
         players[rid]["min"]=this.buffered.end(0)-players[rid]["audio"].currentTime;
@@ -177,6 +169,25 @@ function registersourcebuffer(buffer,rid) {
     //if (players[rid]["track"].sourceBuffers[0].buffered.end(0)-players[rid]["audio"].currentTime>0.7) {
     //  players[rid]["audio"].currentTime=players[rid]["track"].sourceBuffers[0].buffered.end(0)-0.3;
     //}          
+    if (mobile || true) {
+      var x=this.buffered.end(0)-players[rid]["audio"].currentTime;
+      var t=0.6;
+      var d=0;
+      if (x>t+d) {
+        var n=1+((x-t) * (x-t));
+        if (n>1.3) {
+          n=1.3;
+        }
+        players[rid]["audio"].playbackRate=n;
+      }     
+      if (x<t-d){
+        var n=1+((t-x) * (x-t));
+        if (n<1) {
+          n=1;
+        }
+        players[rid]["audio"].playbackRate=n;
+      }        
+    }
     
 //    if (this.buffered.end(0)-players[rid]["audio"].currentTime>1) {      
 //      if (players[rid]["audio"].playbackRate<1.1) {
@@ -638,6 +649,10 @@ function startrecording() {
 }
 function startall() {
   display("startall");
+  if (mobile)
+    display("mobile");
+  else
+    display("desktop");
   if (stopped===false)
     return;
   stopped=false;
