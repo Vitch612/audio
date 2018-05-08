@@ -17,7 +17,6 @@ function getfile($filepath) {
       }
     }
   } else {
-    putfile($filepath,"");
     return "";
   }
   return $s;
@@ -68,22 +67,22 @@ function putfile($filepath,$data,$mode="w") {
   while(fclose($fh)===false);
 }
 function canUsePersistent() {
-  global $applicationfolder;
-  return !file_exists("$applicationfolder/lockdata");
+  global $filesfolder;
+  return !file_exists("$filesfolder/lockdata");
 }
 function lockPersistent($lock) {
-  global $applicationfolder;
+  global $filesfolder;
   if ($lock===true) {
-    putfile("$applicationfolder/lockdata","true");
+    putfile("$filesfolder/lockdata","true");
   } else {
-    deletefile("$applicationfolder/lockdata");
+    deletefile("$filesfolder/lockdata");
   }
 }
 function readPersistent($name) {
-  global $applicationfolder;
+  global $filesfolder;
   while(canUsePersistent()===false);
   lockPersistent(true);
-  if (($s=getfile("$applicationfolder/data.sr"))!==NULL)
+  if (($s=getfile("$filesfolder/data.sr"))!==NULL)
     if (($a = unserialize($s))!==false)
       if (isset($a[$name])) {
         lockPersistent(false);
@@ -97,15 +96,15 @@ function readPersistent($name) {
   return NULL;
 }
 function deletePersistent($name) {
-  global $applicationfolder;
+  global $filesfolder;
   while(canUsePersistent()===false);
   lockPersistent(true);
-  if (($s=getfile("$applicationfolder/data.sr"))!=NULL)
+  if (($s=getfile("$filesfolder/data.sr"))!=NULL)
     if(($a = unserialize($s))!==false) {
       if (isset($a[$name])) {
         unset($a[$name]);
         $s=serialize($a);          
-        putfile("$applicationfolder/data.sr", $s);        
+        putfile("$filesfolder/data.sr", $s);        
       }
       lockPersistent(false);    
       return true;
@@ -115,22 +114,22 @@ function deletePersistent($name) {
   return false;
 }
 function savePersistent($name, $value) {
-  global $applicationfolder;
+  global $filesfolder;
   while(canUsePersistent()===false);
   lockPersistent(true);
   $a = [];
-  if (($s = getfile("$applicationfolder/data.sr")) !== NULL) {
+  if (($s = getfile("$filesfolder/data.sr")) !== NULL) {
     if ($s === "") {
       $a[$name] = $value;
       $s = serialize($a);
-      putfile("$applicationfolder/data.sr", $s);
+      putfile("$filesfolder/data.sr", $s);
       lockPersistent(false);
       return true;
     } else {
       if (($a = unserialize($s)) !== false) {
         $a[$name] = $value;
         $s = serialize($a);
-        putfile("$applicationfolder/data.sr", $s);
+        putfile("$filesfolder/data.sr", $s);
         lockPersistent(false);
         return true;
       }
@@ -141,9 +140,11 @@ function savePersistent($name, $value) {
   return false;  
 }
 function logmsg($text,$logfile="logfile.txt") {
-  global $applicationfolder;
-  //file_put_contents("$applicationfolder/files/logfile.txt",date("Y-m-d h:i:sa").": ".$text."\n",FILE_APPEND);
-  putfile("$applicationfolder/$logfile",date("Y-m-d h:i:sa").": ".$text."\n","a");
+  global $filesfolder;
+  //file_put_contents("$filesfolder/logfile.txt",date("Y-m-d h:i:sa").": ".$text."\n",FILE_APPEND);
+  file_put_contents("$filesfolder/$logfile",$text."\n",FILE_APPEND);
+  //putfile("$filesfolder/$logfile",$text."\n","a");
+  //putfile("$filesfolder/$logfile",date("Y-m-d h:i:sa").": ".$text."\n","a");
 }
 function startWith($haystack,$needle,$case=false) {
   if ($case)
@@ -238,37 +239,42 @@ function deleteplayerresetrequest($source,$target) {
 function timelog($text) {
   global $timelog;
   global $starttime;
-  $timelog[]=["".(microtime(true)-$starttime)=>$text];
+  $timelog[$text]=(microtime(true)-$starttime);
 }
 
 function script_end() {
-  global $applicationfolder;
+  global $filesfolder;
   global $starttime;
   global $timelog;
-  timelog("End of script");
-  if (microtime(true)-$starttime>1) {
+  timelog("EOS");
+  if (microtime(true)-$starttime>0.5) {
     $points="[";
-    foreach($timelog as $entry) {
-      foreach($entry as $time=>$text) {
-        $points.=$time."=>".$text.",";
-      }
+    $previous=$timelog["BOS"];
+    foreach($timelog as $text=>$time) {      
+      if ($text!="EOS" && $text!="BOS" && $time-$previous!=0)
+        $points.=$text."=".number_format($time-$previous,4).";";
+      $previous=$time;
     }
     if ($points!=="[")
      $points=substr($points,0,strlen($points)-1)."]";
     else
-     $points="[]";
-    logmsg("URL:".$_SERVER["REQUEST_URI"]." $points");
+     $points="";
+    logmsg(number_format($timelog["EOS"],4)." ".$_SERVER["REQUEST_URI"]." $points");
   }
   if (isset(error_get_last()["message"])) {
     if (startWith(error_get_last()["message"],"Maximum execution time")) {
       logmsg("Server Abort ".(microtime(true)-$starttime).":\n".print_r(["URL"=>$_SERVER["REQUEST_URI"],"HEADERS"=>["REQUEST"=>getallheaders(),"RESPONSE"=>headers_list()],"ENDSCRIPT"=>connection_aborted()?"Connection Aborted":"Normal End","LASTERROR"=>error_get_last()],true));
-      //deletefile("$applicationfolder/lockdata");
+      //deletefile("$filesfolder/lockdata");
     }  
   }
 }
 error_reporting(E_ALL ^ E_WARNING);
 $starttime= microtime(true);
 $timelog=[];
-$mysql=new database();
+timelog("BOS");
 $applicationfolder=substr($_SERVER["SCRIPT_FILENAME"],0,strrpos($_SERVER["SCRIPT_FILENAME"],"/"));
+$filesfolder="Z:/files";//$filesfolder="$applicationfolder/files";
+$mysql=new database();
+timelog("00");
+
 register_shutdown_function("script_end");

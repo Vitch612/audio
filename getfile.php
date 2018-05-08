@@ -62,7 +62,7 @@ class ResumeDownload {
     $length = $start = $end = 0;
     $output = "";
     $tl = "Content-type: $this->mime\r\n";
-    $formatRange = "Content-range: bytes %d-%d/%d\r\n\r\n";
+    $formatRange = "Content-Range: bytes %d-%d/%d\r\n\r\n";
     foreach ($ranges as $range) {
       $this->getRange($range, $start, $end);
       $length += strlen("\r\n--$this->boundary\r\n");

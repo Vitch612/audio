@@ -42,7 +42,11 @@ else
         <input type="button" name="stop" value="Stop">
         <input type="button" name="restart" value="Restart">
         <input type="button" name="reset" value="Reset">
-        <div class="received" style="display:block;"></div>
+        <div>
+        <div class="timedisp received" style="display:inline;"></div>
+        <div class="timedisp sendtime" style="display:inline;"></div>
+        <div class="timedisp sendfreq" style="display:inline;"></div>
+        </div>
         <div class="players" style="margin-top:20px;text-align:left;"></div>        
         <div style="position:relative;width:100%;padding:0;">
         <div class="events" style="display:none;max-height:500px;overflow:auto;position:relative;float:left;text-align:left;width:27%;"></div>

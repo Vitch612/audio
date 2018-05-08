@@ -33,9 +33,51 @@ function inspect(obj,showinherited,searchdepth,depth) {
   }
   return log+depth+"--]\n";
 }
-    
+function createCORSRequest(method, url) {
+  var xhr = new XMLHttpRequest();
+  if ("withCredentials" in xhr) {
+    // Check if the XMLHttpRequest object has a "withCredentials" property.
+    // "withCredentials" only exists on XMLHTTPRequest2 objects.
+    xhr.open(method, url, true);
+  } else if (typeof XDomainRequest != "undefined") {
+    // Otherwise, check if XDomainRequest.
+    // XDomainRequest only exists in IE, and is IE's way of making CORS requests.
+    xhr = new XDomainRequest();
+    xhr.open(method, url);
+
+  } else {
+
+    // Otherwise, CORS is not supported by the browser.
+    xhr = null;
+
+  }
+  return xhr;
+}
+function display(text) {
+  document.querySelector('.output').innerHTML+=text+"<BR>";
+}
+function refresh() {  
+  document.querySelector('.output').innerHTML+=""+(new Date()).toString()+"<BR>";
+  setTimeout(refresh,3000);
+  navigator.vibrate(300);
+}
 document.addEventListener('DOMContentLoaded', function(){
-    
+  refresh();
+  //display(inspect(navigator).replace(new RegExp('\n','g'),"<BR>"));
+  
+  /*
+  var t0 = new Date().getTime();
+  var url = '/audio/audio.ogg?ID=79c48pv04rbn34v3nf1gqm9u1v&SB=0&playerid=5';
+  var xhr = createCORSRequest('GET', url);
+  //var formdata = new FormData();
+  //formdata.append("update",name);
+  xhr.onload = function() {    
+      
+    alert(((new Date().getTime())-t0)+"\n"+xhr.status+"\n"+xhr.getResponseHeader("Content-Length")+"\n"+xhr.response);
+  };
+  xhr.send(); //formdata);
+  */  
+
 //alert(MediaRecorder.isTypeSupported('audio/ogg;codecs=opus'));
 //alert(MediaSource.isTypeSupported('audio/ogg;codecs=opus'));
 //var cst=navigator.mediaDevices.getSupportedConstraints();
@@ -46,12 +88,13 @@ document.addEventListener('DOMContentLoaded', function(){
 </head>
 <body>
 <div class="output"></div>
+<!--
 <form action="sendaudio.php">
     Position:<input type="text" value="0" name="Stream-Position"><br>
     Bytes:<input type="text" value="0" name="Get-Bytes"><br>
     SessionID:<input type="text" value="u8mmbkcqml18k869757s1lo397" name="ID"><br>    
     PlayerID:<input type="text" value="1234" name="playerid"><br>
     <input type="submit" value="Send">
-</form>
+</form>-->
 </body>
 </html>
